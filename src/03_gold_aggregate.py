@@ -12,12 +12,15 @@ silver_df = spark.table(SILVER_TABLE)
 # 2. Group table by continent and AQI category and aggregate by country count
 category_count_df = silver_df.groupBy("continent", "aqi_category").agg(count("country").alias("country_count"))
 
-# 3. Calculate total countries per continent and derive the percentage
+# 3. Define a Window, bound to the continent (allows us to easily see table grouped by continent)
+window = Window.partitionby("continent")
+
+# 4. Calculate total countries per continent and derive the percentage
 gold_df = category_count_df.withColumn("total_countries", _sum("country_count").over(window)) \
         .withColumn("category_percentage", round(col("country_count") / col("total_countries") * 100, 3) ) \
         .orderBy("continent", col("category_percentage").desc())
 
-# 4. Save gold table as a Delta table
+# 5. Save gold table as a Delta table
 gold_df.write \
     .format("delta") \
     .mode("overwrite") \
